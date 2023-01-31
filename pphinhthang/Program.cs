@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Alchemi.Core;
@@ -12,6 +12,7 @@ namespace TrapezoidRule
         public static GApplication App = new GApplication();
         private static int[] matrix;//Mang chua so can kiem tra
         private static int NumPerThread;//So luong so trong 1 thread
+        private static double kq;
         private static DateTime start;
 
         [STAThread]
@@ -26,16 +27,13 @@ namespace TrapezoidRule
             {
                 host = "localhost";
             }
-            Console.Write("Dua vao so luong so can kiem tra:");
+            Console.Write("Dua vao so luong so can kiem tra:"); //9
             n = Int32.Parse(Console.ReadLine());
-            Console.Write("Dua vao so luong so cho 1 thread:");
+            Console.Write("Dua vao so luong so cho 1 thread:"); //3
             NumPerThread = Int32.Parse(Console.ReadLine());
             matrix = new int[n];
-            for (int i = 0; i < n; i++)
-            {
-                matrix[i] = random.Next();
-            }
-            int NumRemain = n; // NumRemain =  số luong số cần kiểm tra
+
+            int NumRemain = n; // NumRemain =  số luong số cần kiểm tra =9
             int NumCur = 0; // 
             while (NumRemain > 0)
             {
@@ -49,18 +47,13 @@ namespace TrapezoidRule
                     NumberOfThread = NumRemain;
                 }
                 int[] Nums = new int[NumberOfThread];
-                for (int i = 0; i < NumberOfThread; i++)
-                {
-                    Nums[i] = matrix[NumCur];
-                    NumCur++;
-                }
-                App.Threads.Add(new TrapezoidRuleCount(NumCur - NumPerThread, NumCur - NumPerThread + 1, 5)); // NumCur-NumperThread, NumCur-NumperThread + 1
-                NumRemain -= NumberOfThread;
+                App.Threads.Add(new TrapezoidRuleCount(NumRemain, NumRemain - NumPerThread, NumPerThread)); // NumCur-NumperThread, NumCur-NumperThread + 1
+                NumRemain -= NumberOfThread; //6 3
             }
             // thiết lập liên kết
             App.Connection = new GConnection("localhost", 9000, "user", "user");
             // Thêm vào các mô đun cần thiết
-            App.Manifest.Add(new ModuleDependency(typeof(TrapezoidRule).Module));
+            App.Manifest.Add(new ModuleDependency(typeof(TrapezoidRuleCount).Module));
             // Thêm vào sự kiện threadFinish
             App.ThreadFinish += new GThreadFinish(App_ThreadFinish);
 
@@ -75,11 +68,17 @@ namespace TrapezoidRule
         private static void App_ThreadFinish(GThread thread)
         {
             TrapezoidRuleCount pnc = (TrapezoidRuleCount)thread;
-            Console.WriteLine("So{0}-{1} hoan thanh", pnc.StartNums,pnc.EndNums);
+            Console.WriteLine("Ket qua cua tung luong:");
+            Console.WriteLine(pnc.ans);
+            kq += pnc.ans;
+            Console.WriteLine();
+            Console.WriteLine("So{0}-{1} hoan thanh", pnc.StartNums, pnc.EndNums);
+            Console.WriteLine("---------------------------------------------------");
         }
 
         private static void App_ApplicationFinish()
         {
+            Console.WriteLine("Ket qua tich phan {0}", kq);
             Console.WriteLine("Hoan thanh sau {0} seconds.", DateTime.Now - start);
         }
     }
@@ -89,7 +88,8 @@ namespace TrapezoidRule
         public int StartNums;
         public int EndNums;
         public int n;
-        public TrapezoidRuleCount(int StartNums, int EndNums , int n)
+        public double ans;
+        public TrapezoidRuleCount(int EndNums, int StartNums, int n)
         {
             this.StartNums = StartNums;
             this.EndNums = EndNums;
@@ -97,23 +97,20 @@ namespace TrapezoidRule
         }
         public override void Start()
         {
-            double ans ;
-            double h;
-            h = (EndNums - StartNums) / n;
-            double[] X = new double[n+1];
-            double[] Y = new double[n+1];
+            double h = (double)((EndNums - StartNums) / n);
 
-            for (int i = 0; i < n+1; i++)
+            double[] X = new double[n + 1];
+            double[] Y = new double[n + 1];
+
+            for (int i = 0; i < n + 1; i++)
             {
-                X[i] = StartNums + i*h;
-                X.Append(X[i]);
-                Y[i] = Math.Exp(X[i]);
-                Y.Append(Y[i]);
+                X[i] = StartNums + i * h;
+                Y[i] = Math.Pow(X[i], 2) + 1;
             }
             ans = 0;
-            for (int i = 0;i < n+1;i++)
+            for (int i = 0; i < n + 1; i++)
             {
-                if ((i == 0) || (i == n))    
+                if ((i == 0) || (i == n))
                 {
                     ans = ans + Y[i];
                 }
@@ -122,8 +119,8 @@ namespace TrapezoidRule
                     ans = ans + 2 * Y[i];
                 }
             }
-            ans = (ans * h)/ 2;
-            Console.WriteLine(ans);
+            ans = (ans * h) / 2;
+
         }
     }
 }
